@@ -1,21 +1,8 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 /*
-* Copyright (C) 2014 @avenirer [avenir.ro@gmail.com]
-* Everyone is permitted to copy and distribute verbatim or modified copies of this license document,
-* and changing it is allowed as long as the name is changed.
-* DON'T BE A DICK PUBLIC LICENSE TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
-*
-***** Do whatever you like with the original work, just don't be a dick.
-***** Being a dick includes - but is not limited to - the following instances:
-********* 1a. Outright copyright infringement - Don't just copy this and change the name.
-********* 1b. Selling the unmodified original with no work done what-so-ever, that's REALLY being a dick.
-********* 1c. Modifying the original work to contain hidden harmful content. That would make you a PROPER dick.
-***** If you become rich through modifications, related works/services, or supporting the original work, share the love. Only a dick would make loads off this work and not buy the original works creator(s) a pint.
-***** Code is provided with no warranty.
-*********** Using somebody else's code and bitching when it goes wrong makes you a DONKEY dick.
-*********** Fix the problem yourself. A non-dick would submit the fix back.
- *
- */
+* Copyleft 2018 @lutfiarfianto 
+* inspiring @avenirer [avenir.ro@gmail.com]
+*/
 
 /** how to extend MY_Model:
  *	class User_model extends MY_Model
@@ -176,6 +163,8 @@ class MY_Model extends CI_Model
     private $_trashed = 'without';
 
     private $_select = '*';
+
+    private $rules = [];
 
 
     public function __construct()
@@ -493,6 +482,7 @@ class MY_Model extends CI_Model
                 $this->where($this->row_fields_to_update);
                 $this->row_fields_to_update = array();
             }
+
             if(isset($column_name_where))
             {
                 if (is_array($column_name_where))
@@ -505,6 +495,7 @@ class MY_Model extends CI_Model
                     $this->_database->where($column_name_where, $column_value);
                 }
             }
+
             if($escape)
             {
                 if($this->_database->update($this->table, $data))
@@ -2082,7 +2073,7 @@ class MY_Model extends CI_Model
 	    return $data;
     }
     */
-	
+
     /*  add dropdown option key, value 
         <option value="{$key}" {$selected} >{$value}</option>
     */
@@ -2107,5 +2098,104 @@ class MY_Model extends CI_Model
     }
 
 
-	
+    public function create()
+    {
+        $row = [];
+
+        $fields = $this->db->list_fields( $this->table );
+
+        foreach($fields as $field){
+            $row[$field] = null;
+        }
+        settype( $row , $this->return_as );
+
+        return $row;
+
+    }
+
+    /* copy from request */
+
+    public function _validate_request()
+    {
+        $this->load->library('form_validation');
+
+        if(!empty($this->rules))
+        {
+            if(empty($this->input->post( $this->primary_key )))
+            {
+                $rules = $this->_get_rules('insert');
+            }
+            else
+            {
+                $rules = $this->_get_rules('update');
+            }
+
+            $this->form_validation->set_rules($rules);
+            return $this->form_validation->run();
+
+        }else{
+            return true;
+        }
+
+    }
+
+    public function _get_fillable_field()
+    {
+        
+        if(is_null($this->protected)) $this->protected = [];
+        if(is_null($this->fillable)) $this->fillable =[];
+
+        $fields = $this->db->list_fields( $this->table );
+        $_fields = [];
+
+        foreach ($fields as $key => $field) {
+
+            if(in_array($field, $this->protected)) continue;
+            if(!in_array($field, $this->fillable)) continue;
+
+            $_fields[] = $field;
+        
+        }
+
+        return $_fields;
+
+    }
+
+
+    public function copy_request()
+    {
+        $data = [];
+
+        if(!$this->_validate_request()) return false;
+
+        $fields = $this->_get_fillable_field();
+
+        foreach($fields as $field){
+            $data[$field] = $this->input->get_post($field, true);
+        }
+
+        return $data;
+    }
+
+    public function save($data, $escape= true)
+    {
+        if($this->get($this->input->post($this->primary_key)) ){
+            $this->update($data,[$this->primary_key => $this->input->post($this->primary_key)], $escape);
+        }else{
+            $this->insert($data);
+        }
+    }
+
+
+    public function save_from_request($escape=true)
+    {
+        if(!($data = $this->copy_request())) {
+            return false;
+        }
+
+        return $this->save($data, $escape);
+    }
+
+
+
 }
