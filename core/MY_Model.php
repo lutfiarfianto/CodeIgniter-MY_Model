@@ -2082,4 +2082,30 @@ class MY_Model extends CI_Model
 	    return $data;
     }
     */
+	
+    /*  add dropdown option key, value 
+        <option value="{$key}" {$selected} >{$value}</option>
+    */
+    public function dropdown_from_lists($lists=[],$default='',$selected='selected')
+    {
+        $option = [];
+        if(!is_array($default)) settype($default, 'array');
+        foreach ($lists as $key => $value) {
+            $option[] = (object) [
+                'id'       => $key,
+                'value'    => $value,
+                'selected' => in_array($key,$default)?'selected':'',
+            ];
+        }
+
+        return $option;
+    }
+
+    public function dropdown_from_model($default='',$selected='selected')
+    {
+        return $this->dropdown_from_lists($this->_select,$default,$selected);
+    }
+
+
+	
 }
