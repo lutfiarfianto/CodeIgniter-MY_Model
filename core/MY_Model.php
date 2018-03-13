@@ -100,7 +100,7 @@ class MY_Model extends CI_Model
     /** @var bool | array
      * Enables created_at and updated_at fields
      */
-    protected $timestamps = TRUE;
+    protected $timestamps = false;
     protected $timestamps_format = 'Y-m-d H:i:s';
 
     protected $_created_at_field;
@@ -574,6 +574,7 @@ class MY_Model extends CI_Model
      */
     public function where($field_or_array = NULL, $operator_or_value = NULL, $value = NULL, $with_or = FALSE, $with_not = FALSE, $custom_string = FALSE)
     {
+        
         if(is_array($field_or_array))
         {
             $multi = $this->is_multidimensional($field_or_array);
@@ -2092,6 +2093,13 @@ class MY_Model extends CI_Model
         return $option;
     }
 
+    public function dropdown_from_value($field='',$default,$selected='selected')
+    {
+        $field_varname = $field.'_value';
+        $lists = $this->{$field_varname};
+        return $this->dropdown_from_lists($lists,$default,$selected);
+    }
+
     public function dropdown_from_model($default='',$selected='selected')
     {
         return $this->dropdown_from_lists($this->_select,$default,$selected);
@@ -2180,7 +2188,7 @@ class MY_Model extends CI_Model
     public function save($data, $escape= true)
     {
         if($this->get($this->input->post($this->primary_key)) ){
-            $this->update($data,[$this->primary_key => $this->input->post($this->primary_key)], $escape);
+            $this->update($data,[$this->primary_key => $this->input->post($this->primary_key,true)], $escape);
         }else{
             $this->insert($data);
         }
@@ -2196,6 +2204,130 @@ class MY_Model extends CI_Model
         return $this->save($data, $escape);
     }
 
+    public function add_protected_field($field='')
+    {
+        if(is_null($this->protected)){
+            $this->protected = [$field];
+        }else{
+            array_push($this->protected, $field);
+        }
+    }
 
+    public function protect_empty_request($fields=[])
+    {
+        foreach ($fields as $key => $field) {
+            if(empty($this->input->post($field) )){
+                $this->add_protected_field($field);
+            }
+        }
+    }
+
+    public function ci_where($key, $value = NULL, $escape = NULL){
+        $this->_database->where($key, $value, $escape);
+        return $this;
+    }
+
+
+    public function where_in($field='',$value=null,$escape=null)
+    {
+        $this->_database->where_in($field,$value,$escape);
+        return $this;
+    }
+
+    public function or_where($key, $value = NULL, $escape = NULL){
+        $this->_database->or_where($key,$value,$escape);
+        return $this;
+    }
+
+    public function or_where_in($key = NULL, $values = NULL, $escape = NULL){
+        $this->_database->or_where_in($key,$values, $escape);
+        return $this;
+    }
+
+    public function where_not_in($key = NULL, $values = NULL, $escape = NULL){
+        $this->_database->where_not_in($key, $values, $escape);
+        return $this;
+    }
+
+    public function or_where_not_in($key = NULL, $values = NULL, $escape = NULL){
+        $this->_database->or_where_not_in($key, $values, $escape);
+        return $this;
+    }
+
+
+
+    public function like($field, $match = '', $side = 'both', $escape = NULL)
+    {
+        $this->_database->like($field,$match,$side,$escape);
+        return $this;
+    }
+
+    public function not_like($field, $match = '', $side = 'both', $escape = NULL){
+        $this->_database->not_like($field, $match , $side , $escape );
+        return $this;   
+    }
+
+    public function or_like($field, $match = '', $side = 'both', $escape = NULL){
+        $this->_database->or_like($field, $match, $side, $escape);
+        return $this;   
+    }
+
+    public function or_not_like($field, $match = '', $side = 'both', $escape = NULL){
+        $this->_database->or_not_like($field, $match, $side, $escape);
+        return $this;   
+    }
+
+
+
+    public function group_start($not = '', $type = 'AND '){
+        $this->_database->group_start($not, $type);
+        return $this;   
+    }
+
+    public function or_group_start(){
+        $this->_database->or_group_start();
+        return $this;
+    }
+
+    public function not_group_start(){
+        $this->_database->not_group_start();
+        return $this;
+    }
+
+    public function or_not_group_start(){
+        $this->_database->or_not_group_start();
+        return $this;
+    }
+
+    public function group_end(){
+        $this->_database->group_end();
+        return $this;
+    }
+
+
+    public function having($key, $value = NULL, $escape = NULL){
+        $this->_database->having($key, $value, $escape);
+        return $this;
+    }
+
+    public function or_having($key, $value = NULL, $escape = NULL){
+        $this->_database->or_having($key, $value, $escape);
+        return $this;
+    }
+
+    public function offset($offset){
+        $this->_database->offset($offset);
+        return $this;
+    }
+
+    public function all($where=NULL)
+    {
+        return $this->get_all($where);
+    }
+
+    public function _getvar($var='')
+    {
+        return $this->{$var};
+    }
 
 }
