@@ -162,7 +162,7 @@ class MY_Model extends CI_Model
 
     private $_trashed = 'without';
 
-    private $_select = '*';
+    private $_select = ''; // in ci 3.1.7 if not set select treat as *
 
     private $rules = [];
 
@@ -1966,6 +1966,10 @@ class MY_Model extends CI_Model
             $this->with($relation,$arguments);
             return $this;
         }
+        if($method=='ci_where'){
+                call_user_func_array(array($this->_database, 'where'), $arguments);
+                return $this;
+        }
         if (method_exists($this->_database, $method)) {
                 call_user_func_array(array($this->_database, $method), $arguments);
                 return $this;
@@ -2220,104 +2224,6 @@ class MY_Model extends CI_Model
                 $this->add_protected_field($field);
             }
         }
-    }
-
-    public function ci_where($key, $value = NULL, $escape = NULL){
-        $this->_database->where($key, $value, $escape);
-        return $this;
-    }
-
-
-    public function where_in($field='',$value=null,$escape=null)
-    {
-        $this->_database->where_in($field,$value,$escape);
-        return $this;
-    }
-
-    public function or_where($key, $value = NULL, $escape = NULL){
-        $this->_database->or_where($key,$value,$escape);
-        return $this;
-    }
-
-    public function or_where_in($key = NULL, $values = NULL, $escape = NULL){
-        $this->_database->or_where_in($key,$values, $escape);
-        return $this;
-    }
-
-    public function where_not_in($key = NULL, $values = NULL, $escape = NULL){
-        $this->_database->where_not_in($key, $values, $escape);
-        return $this;
-    }
-
-    public function or_where_not_in($key = NULL, $values = NULL, $escape = NULL){
-        $this->_database->or_where_not_in($key, $values, $escape);
-        return $this;
-    }
-
-
-
-    public function like($field, $match = '', $side = 'both', $escape = NULL)
-    {
-        $this->_database->like($field,$match,$side,$escape);
-        return $this;
-    }
-
-    public function not_like($field, $match = '', $side = 'both', $escape = NULL){
-        $this->_database->not_like($field, $match , $side , $escape );
-        return $this;   
-    }
-
-    public function or_like($field, $match = '', $side = 'both', $escape = NULL){
-        $this->_database->or_like($field, $match, $side, $escape);
-        return $this;   
-    }
-
-    public function or_not_like($field, $match = '', $side = 'both', $escape = NULL){
-        $this->_database->or_not_like($field, $match, $side, $escape);
-        return $this;   
-    }
-
-
-
-    public function group_start($not = '', $type = 'AND '){
-        $this->_database->group_start($not, $type);
-        return $this;   
-    }
-
-    public function or_group_start(){
-        $this->_database->or_group_start();
-        return $this;
-    }
-
-    public function not_group_start(){
-        $this->_database->not_group_start();
-        return $this;
-    }
-
-    public function or_not_group_start(){
-        $this->_database->or_not_group_start();
-        return $this;
-    }
-
-    public function group_end(){
-        $this->_database->group_end();
-        return $this;
-    }
-
-
-    public function having($key, $value = NULL, $escape = NULL){
-        $this->_database->having($key, $value, $escape);
-        return $this;
-    }
-
-    public function or_having($key, $value = NULL, $escape = NULL){
-        $this->_database->or_having($key, $value, $escape);
-        return $this;
-    }
-
-    public function offset($offset){
-        $this->_database->offset($offset);
-        return $this;
     }
 
     public function all($where=NULL)
