@@ -162,7 +162,7 @@ class MY_Model extends CI_Model
 
     private $_trashed = 'without';
 
-    private $_select = ''; // in ci 3.1.7 if not set select treat as *
+    private $_select = null; // in ci 3.1.7 if not set select treat as *
 
     private $rules = [];
 
@@ -2234,6 +2234,13 @@ class MY_Model extends CI_Model
     public function _getvar($var='')
     {
         return $this->{$var};
+    }
+
+    public function count_by($field)
+    {
+        $this->select( $field . ', count(' . $this->primary_key . ') as _count')
+            ->group_by($field);
+        return $this;
     }
 
 }
