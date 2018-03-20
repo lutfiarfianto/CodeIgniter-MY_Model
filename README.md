@@ -388,6 +388,31 @@ $this->user_model->update(array('views'=>'views+1'), array('id'=>'1'), FALSE);
 ```
 **TAKE CARE:** This doesn't work with values that have space inside unless you set quotes on them. So I would rather not use this (Maybe in future I will change the way this works)
 
+## SAVE
+### save() method
+
+To save model with insert/update data depending on primary key. When PK is exists, model will updated otherwise it created
+
+```php
+$this->load->model('book_model');
+
+$data['name'] = $this->input->post('name');
+$data['creator'] = $this->input->post('creator');
+
+$this->book_model->save($data);
+```
+
+
+### save_from_request() method
+
+To save model directly from request. The convention are, field name in table must be the same with field name in form.
+
+```php
+$this->load->model('book_model');
+
+$this->book_model->save_from_request();
+```
+
 ## DELETE
 ### The delete() method
 
@@ -776,6 +801,30 @@ class User_model extends MY_Model
 }
 ```
 Each observer overwrites its predecessor's data, sequentially, in the order the observers are defined. In order to work with relationships, the MY_Model already has an `after_get` trigger which will be called last.
+
+## Miscelaneous
+
+### Count By
+
+To count row number based on single field criteria
+
+```php
+$book_by_categories = $this->book_model->count_by('categories');
+
+```
+
+
+### Serialize/Unserialize
+
+To serialize / unserialize field from array into json. This method useful when the fields contain multiple array option.
+
+```php
+$this->load->model('book_model');
+
+// the categories can have multiple array to be choose
+$this->book_model->set_serialize_field(['categories']);
+
+```
 
 ## Available methods
 
