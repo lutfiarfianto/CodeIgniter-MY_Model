@@ -149,6 +149,8 @@ class MY_Model extends CI_Model
     protected $after_update = array();
     protected $before_get = array();
     protected $after_get = array();
+    protected $before_get_all = array();
+    protected $after_get_all = array();
     protected $before_delete = array();
     protected $after_delete = array();
     protected $before_soft_delete = array();
@@ -165,6 +167,8 @@ class MY_Model extends CI_Model
     private $_select = null; // in ci 3.1.7 if not set select treat as *
 
     private $rules = [];
+
+    private $_serialize_field = array();
 
 
     public function __construct()
@@ -902,9 +906,11 @@ class MY_Model extends CI_Model
             {
                 $row = $query->row_array();
                 $row = $this->trigger('after_get', $row);
-                $row =  $this->_prep_after_read(array($row),FALSE);
+                $row = $this->_prep_after_read(array($row),FALSE);
                 $row = is_array($row) ? $row[0] : $row->{0};
                 $this->_write_to_cache($row);
+                $row = $this->_unserialize_row($row);
+
                 return $row;
             }
             else
@@ -920,7 +926,7 @@ class MY_Model extends CI_Model
      * @param null $where
      * @return mixed
      */
-    public function get_all($where = NULL)
+    public function get_all($where = NULL,$as_query = false)
     {
 
         $data = $this->_get_from_cache();
@@ -934,7 +940,7 @@ class MY_Model extends CI_Model
         }
         else
         {
-            $this->trigger('before_get');
+            $this->trigger('before_get_all');
             if(isset($where))
             {
                 $this->where($where);
@@ -962,18 +968,28 @@ class MY_Model extends CI_Model
                 }
             }
             $query = $this->_database->get($this->table);
+
+            if($as_query){
+                return $query;
+            }
+
             $this->_reset_trashed();
             if($query->num_rows() > 0)
             {
                 $data = $query->result_array();
-                $data = $this->trigger('after_get', $data);
+                $data = $this->trigger('after_get_all', $data);
                 $data = $this->_prep_after_read($data,TRUE);
                 $this->_write_to_cache($data);
+
+                foreach ($data as $key => & $row) {
+                    $row = $this->_unserialize_row($row);
+                }
+
                 return $data;
             }
             else
             {
-                return FALSE;
+                return [];
             }
         }
     }
@@ -1111,8 +1127,8 @@ class MY_Model extends CI_Model
 
             }
 
-
             $local_key_values = array();
+
             foreach($data as $key => $element)
             {
                 if(isset($element[$local_key]) and !empty($element[$local_key]))
@@ -2082,10 +2098,15 @@ class MY_Model extends CI_Model
     /*  add dropdown option key, value 
         <option value="{$key}" {$selected} >{$value}</option>
     */
-    public function dropdown_from_lists($lists=[],$default='',$selected='selected')
+    public function dropdown_from_lists($lists='',$default='',$selected='selected')
     {
         $option = [];
         if(!is_array($default)) settype($default, 'array');
+
+        if(is_string($lists)){
+            $lists = $this->$lists;
+        }
+
         foreach ($lists as $key => $value) {
             $option[] = (object) [
                 'id'       => $key,
@@ -2103,12 +2124,6 @@ class MY_Model extends CI_Model
         $lists = $this->{$field_varname};
         return $this->dropdown_from_lists($lists,$default,$selected);
     }
-
-    public function dropdown_from_model($default='',$selected='selected')
-    {
-        return $this->dropdown_from_lists($this->_select,$default,$selected);
-    }
-
 
     public function create()
     {
@@ -2186,12 +2201,17 @@ class MY_Model extends CI_Model
             $data[$field] = $this->input->get_post($field, true);
         }
 
+        foreach ($this->_serialize_field as $field) {
+            $data[$field] = json_encode($data[$field]);
+        }
+
         return $data;
     }
 
     public function save($data, $escape= true)
     {
-        if($this->get($this->input->post($this->primary_key)) ){
+
+        if($this->get( $this->input->post($this->primary_key) ) ){
             $this->update($data,[$this->primary_key => $this->input->post($this->primary_key,true)], $escape);
         }else{
             $this->insert($data);
@@ -2242,5 +2262,40 @@ class MY_Model extends CI_Model
             ->group_by($field);
         return $this;
     }
+
+    public function set_serialize_field($field = array())
+    {
+        $this->_serialize_field = $field;
+    }
+
+    private function _unserialize_row($row)
+    {
+        // transform json string to array
+        foreach ($this->_serialize_field as $field ) {
+            if(is_array($row)){
+                $row[$field] = json_decode($row[$field],true);
+            }else{
+                $row->{$field} = json_decode($row->{$field},true);
+            }
+        }
+        return $row;
+    }
+
+    private function _serialize_row($row)
+    {
+        // transform array to json string
+        foreach ($this->_serialize_field as $field ) {
+            $row[$field] = json_encode($row[$field]);
+        }
+        return $row;
+    }
+
+    public function select_all()
+    {
+        $this->_select = '*';
+        return $this;
+    }
+
+
 
 }
