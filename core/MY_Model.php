@@ -170,6 +170,9 @@ class MY_Model extends CI_Model
 
     private $_serialize_field = array();
 
+    private $_upload_field = array();
+
+
 
     public function __construct()
     {
@@ -2201,6 +2204,12 @@ class MY_Model extends CI_Model
             $data[$field] = $this->input->get_post($field, true);
         }
 
+        foreach($this->_upload_field as $field){
+            if(isset($this->$field)){
+                $data[$field] = $this->$field;
+            }
+        }
+
         foreach ($this->_serialize_field as $field) {
             $data[$field] = json_encode($data[$field]);
         }
@@ -2211,7 +2220,7 @@ class MY_Model extends CI_Model
     public function save($data, $escape= true)
     {
 
-        if($this->get( $this->input->post($this->primary_key) ) ){
+        if( $this->input->post($this->primary_key) ){
             $this->update($data,[$this->primary_key => $this->input->post($this->primary_key,true)], $escape);
         }else{
             $this->insert($data);
@@ -2295,6 +2304,22 @@ class MY_Model extends CI_Model
         $this->_select = '*';
         return $this;
     }
+
+    /* 
+     * can be set as ['field1','field2'] 
+     * -- or --
+     * [
+     *     'field1' => 'filename1',
+     *     'field2' => 'filename2',
+     * ]
+     * 
+     */
+    public function set_upload_field($field=[])
+    {
+        $this->_upload_field = $field;
+        return $this;
+    }
+
 
 
 
