@@ -161,6 +161,7 @@ class MY_Model extends CI_Model
     protected $return_as = 'object';
     protected $return_as_dropdown = NULL;
     protected $_dropdown_field = '';
+    protected $_multiple_input = false;
 
     private $_trashed = 'without';
 
@@ -171,6 +172,8 @@ class MY_Model extends CI_Model
     private $_serialize_field = array();
 
     private $_upload_field = array();
+
+    private $_custom_fill_field = array();
 
 
 
@@ -1130,8 +1133,8 @@ class MY_Model extends CI_Model
 
             }
 
-            $local_key_values = array();
 
+            $local_key_values = array();
             foreach($data as $key => $element)
             {
                 if(isset($element[$local_key]) and !empty($element[$local_key]))
@@ -1989,6 +1992,10 @@ class MY_Model extends CI_Model
                 call_user_func_array(array($this->_database, 'where'), $arguments);
                 return $this;
         }
+        if($method=='ci_where_in'){
+                call_user_func_array(array($this->_database, 'where_in'), $arguments);
+                return $this;
+        }
         if (method_exists($this->_database, $method)) {
                 call_user_func_array(array($this->_database, $method), $arguments);
                 return $this;
@@ -2204,6 +2211,12 @@ class MY_Model extends CI_Model
             $data[$field] = $this->input->get_post($field, true);
         }
 
+        foreach($this->_custom_fill_field as $field){
+            if(isset($this->$field)){
+                $data[$field] = $this->$field;
+            }
+        }
+
         foreach($this->_upload_field as $field){
             if(isset($this->$field)){
                 $data[$field] = $this->$field;
@@ -2217,14 +2230,83 @@ class MY_Model extends CI_Model
         return $data;
     }
 
+    public function unset_null($data)
+    {
+        foreach ($data as $field => $value) {
+            if(empty($value))
+                unset($data[$field]);
+        }
+        return $data;
+    }
+
     public function save($data, $escape= true)
     {
 
+        if($this->_multiple_input){
+            if(is_array($this->input->post($this->primary_key))){
+                $this->save_multiple($data,$escape);
+            }else{
+                $this->save_single($data,$escape);
+            }
+        }else{
+            $this->save_single($data,$escape);
+        }
+
+    }
+
+    public function save_single($data,$escape=true)
+    {
         if( $this->input->post($this->primary_key) ){
             $this->update($data,[$this->primary_key => $this->input->post($this->primary_key,true)], $escape);
+            $this->{$this->primary_key} = $this->input->post($this->primary_key,true);
+        }else{
+            if($this->insert($data)){
+                $this->{$this->primary_key} = $this->_database->insert_id();
+            }
+        }
+    }
+
+    public function save_multiple($data,$escape=true)
+    {
+
+        foreach ($data as $field => $arr) {
+            if($arr==null) continue;
+            foreach ($arr as $key => $val) {
+                $_data[$key][$field] = $val;
+            }
+        }
+
+        $this->{$this->primary_key} = [];
+
+        foreach ($this->input->post($this->primary_key) as $idx => $pk) {
+            if( $pk ){
+                $this->update($_data[$idx],[$this->primary_key => $pk], $escape);
+            }else{
+                if($this->insert($_data[$idx])){
+                    $this->{$this->primary_key}[$idx] = $this->_database->insert_id();
+                }
+            }
+        }
+
+    }
+
+    public function set_multiple_save()
+    {
+        $this->_multiple_input = true;
+        return $this;
+    }
+
+    public function save_where($data,$where)
+    {
+        if($this->where($where)->get()){
+            $this->where($where)->update($data);
+            $model = $this->where($where)->get();
+            $this->{$this->primary_key} = $model->{$this->primary_key};
         }else{
             $this->insert($data);
+            $this->{$this->primary_key} = $this->_database->insert_id();
         }
+        return $this;
     }
 
 
@@ -2234,7 +2316,20 @@ class MY_Model extends CI_Model
             return false;
         }
 
-        return $this->save($data, $escape);
+        $this->save($data, $escape);
+
+        return $this;
+    }
+
+    public function save_from_request_where($where)
+    {
+        if(!($data = $this->copy_request())) {
+            return false;
+        }
+
+        $this->save_where($data, $where);
+
+        return $this;
     }
 
     public function add_protected_field($field='')
@@ -2244,6 +2339,7 @@ class MY_Model extends CI_Model
         }else{
             array_push($this->protected, $field);
         }
+        return $this;
     }
 
     public function protect_empty_request($fields=[])
@@ -2253,6 +2349,7 @@ class MY_Model extends CI_Model
                 $this->add_protected_field($field);
             }
         }
+        return $this;
     }
 
     public function all($where=NULL)
@@ -2314,13 +2411,27 @@ class MY_Model extends CI_Model
      * ]
      * 
      */
-    public function set_upload_field($field=[])
+    public function set_upload_field($field=[],$protect_empty_request=true)
     {
-        $this->_upload_field = $field;
+        $this->_upload_field = array_merge( $this->_upload_field, $field );
+
+        if($protect_empty_request)
+            $this->protect_empty_request($field);
+
         return $this;
     }
 
+    public function set_custom_fill_field($field=[])
+    {
+        $this->_custom_fill_field = array_merge( $this->_custom_fill_field, $field );
+        return $this;
+    }
 
+    public function push_custom_fill_field($field)
+    {
+        array_push($this->_custom_fill_field,$field);
+        return $this;
+    }
 
 
 }
