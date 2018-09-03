@@ -221,12 +221,14 @@ class MY_Model extends CI_Model
         {
             foreach ($data_as_array as $field => $value)
             {
-                if (in_array($field, $this->fillable)) {
-                    $new_data[$field] = $value;
-                }
-                else
-                {
-                     show_error('MY_Model: Unknown column ('.$field.') in table: ('.$this->table.').');
+                if($this->fillable){
+                    if (in_array($field, $this->fillable)) {
+                        $new_data[$field] = $value;
+                    }
+                    else
+                    {
+                         show_error('MY_Model: Unknown column ('.$field.') in table: ('.$this->table.').');
+                    }
                 }
             }
         }
@@ -236,12 +238,14 @@ class MY_Model extends CI_Model
             {
                 foreach ($row as $field => $value)
                 {
-                    if (in_array($field, $this->fillable)) {
-                        $new_data[$key][$field] = $value;
-                    }
-                    else
-                    {
-                        show_error('MY_Model: Unknown column '.$field.' in table: '.$this->table);
+                    if($fillable){
+                        if (in_array($field, $this->fillable)) {
+                            $new_data[$key][$field] = $value;
+                        }
+                        else
+                        {
+                            show_error('MY_Model: Unknown column ('.$field.') in table: ('.$this->table . ').');
+                        }
                     }
                 }
             }
